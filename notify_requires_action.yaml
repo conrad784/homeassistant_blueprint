@@ -1,0 +1,151 @@
+blueprint:
+  name: Require Action Notification
+  description: >-
+    Send Notification to Homeassistant app (https://www.home-assistant.io/integrations/group#notify-groups)  which stays until someone marks it done or runs in timeout.
+  domain: script
+  source_url: https://github.com/conrad784/homeassistant_blueprint
+  input:
+    notify_device:
+      name: Notification service
+      description: Notification service name (ex. notify.my_group ....).
+      selector:
+        text:
+    helper_storage:
+      name: (Required) Helper - Storage
+      description: A text helper which will be used by the automation to know if somebody confirmed the action.
+      selector:
+        entity:
+          domain: input_boolean
+    title:
+      name: "Title"
+      description: "The title of the button shown in the notification."
+      default: ""
+      selector:
+        text:
+    message:
+      name: "Message"
+      description: "The message body"
+      selector:
+        text:
+    persistent_notification:
+      name: Create persistent notification?
+      description: Persistent notifications cannot be dimissed by swiping away
+      default: false
+      selector:
+        boolean:
+    confirm_text:
+      name: "Confirmation Text"
+      description: "Text to show on the confirmation button"
+      default: "I am going to do it!"
+      selector:
+        text:
+    confirm_action:
+      name: "Confirmation Action"
+      description: "Action to run when notification is confirmed"
+      default: []
+      selector:
+        action:
+    dismiss_text:
+      name: "Dismiss Text"
+      description: "Text to show on the dismiss button"
+      default: "I can't do it."
+      selector:
+        text:
+    dismiss_action:
+      name: "Dismiss Action"
+      description: "Action to run when notification is dismissed"
+      default: []
+      selector:
+        action:
+    tag:
+      name: "Notification Tag"
+      description: "notification tag for updating and dismissing the notification"
+      default: {}
+      selector:
+        text:
+    timeout:
+      name: "Timeout duration"
+      default: {}
+      selector:
+        duration:
+mode: restart
+
+sequence:
+  - alias: "Set up variables"
+    variables:
+      action_confirm: "{{ 'CONFIRM_' ~ context.id }}"
+      action_dismiss: "{{ 'DISMISS_' ~ context.id }}"
+  - alias: "Send notification"
+    service: !input notify_device
+    data:
+      message: !input message
+      title: !input title
+      data:
+        persistent: !input persistent_notification
+        actions:
+          - action: "{{ action_confirm }}"
+            title: !input confirm_text
+          - action: "{{ action_dismiss }}"
+            title: !input dismiss_text
+        tag: !input tag
+  - alias: "Set status in helper"
+    service: input_boolean.turn_on
+    target:
+      entity_id: !input helper_storage
+  - alias: "Awaiting response"
+    repeat:
+      sequence:
+        - wait_for_trigger:
+            - platform: event
+              event_type: mobile_app_notification_action
+              event_data:
+                action: "{{ action_confirm }}"
+            - platform: event
+              event_type: mobile_app_notification_action
+              event_data:
+                action: "{{ action_dismiss }}"
+            - platform: event
+              event_type: mobile_app_notification_cleared
+          timeout: !input timeout
+        - choose:
+            - conditions: '{{ wait.trigger.event.event_type == "mobile_app_notification_cleared" }}'
+              sequence:
+                - choose:
+                  default: !input dismiss_action
+            - conditions: "{{ wait.trigger.event.data.action == action_dismiss }}"
+              sequence:
+                - service: !input notify_device
+                  data:
+                    message: "Somebody dismissed the message"
+                    data:
+                      tag: !input tag
+                - choose:
+                  default: !input dismiss_action
+            - conditions: "{{ wait.trigger.event.data.action == action_confirm }}"
+              sequence:
+                - service: !input notify_device
+                  data:
+                    message: clear_notification
+                    data:
+                      tag: !input tag
+                - service: input_boolean.turn_off
+                  target:
+                    entity_id: !input helper_storage
+                - choose:
+                  default: !input confirm_action
+            - conditions: "{{ wait.remaining == 0}}"
+              sequence:
+                - service: !input notify_device
+                  data:
+                    message: clear_notification
+                    data:
+                      tag: !input tag
+                - service: input_boolean.turn_off
+                  target:
+                    entity_id: !input helper_storage
+                - choose:
+                  default: !input dismiss_action
+      until:
+        - condition: state
+          entity_id: !input helper_storage
+          state: "off"
