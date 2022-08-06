@@ -114,11 +114,6 @@ sequence:
                   default: !input dismiss_action
             - conditions: "{{ wait.trigger.event.data.action == action_dismiss }}"
               sequence:
-                - service: !input notify_device
-                  data:
-                    message: "Somebody dismissed the message"
-                    data:
-                      tag: !input tag
                 - choose:
                   default: !input dismiss_action
             - conditions: "{{ wait.trigger.event.data.action == action_confirm }}"
