@@ -1,6 +1,6 @@
 # extended from https://github.com/arfoll/ha-awtrix-blueprints/
 blueprint:
-  name: Awtrix-light custom application
+  name: Awtrix-light custom application conrad784
   description: Custom Awtrix-light application
   domain: automation
   input:
