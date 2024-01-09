@@ -127,9 +127,14 @@ action:
       qos: 0
       retain: false
       topic: "{{ my_display }}/custom/{{ appname }}"
-      payload: |-
+      payload: >-
         {
           "pos": {{pos}},
+          {% if with_unit == true %}
+          "text": "{{ msg_text }} {{ states(monitored_entity, with_unit=true) }}",
+          {% else %}
+          "text": "{{ msg_text }} {{ states(monitored_entity, with_unit=false) }}",
+          {% endif %}
           "text": "{{ msg_text }} {{ states(monitored_entity, with_unit={{ with_unit }}) }}",
           "color": {{text_color}},
           "background": {{ background_color }},
