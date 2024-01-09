@@ -131,9 +131,9 @@ action:
         {
           "pos": {{pos}},
           {% if with_unit == true %}
-          "text": "{{ msg_text }} {{ states(monitored_entity, with_unit=true) }}",
+          "text": "{{ msg_text }} {{ states(monitored_entity, with_unit=true, rounded=True) }}",
           {% else %}
-          "text": "{{ msg_text }} {{ states(monitored_entity, with_unit=false) }}",
+          "text": "{{ msg_text }} {{ states(monitored_entity, with_unit=false, rounded=True) }}",
           {% endif %}
           "color": {{text_color}},
           "background": {{ background_color }},
