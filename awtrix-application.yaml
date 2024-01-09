@@ -120,7 +120,7 @@ variables:
   pos: !input position
   appname: !input appname
   monitored_entity: !input monitored_entity
-  with_unit: !input with_input
+  with_unit: !input with_unit
 action:
   - service: mqtt.publish
     data:
